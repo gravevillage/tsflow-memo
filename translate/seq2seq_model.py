@@ -130,6 +130,17 @@ class Seq2SeqModel(object):
 
     # The seq2seq function: we use embedding for the input and attention.
     def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
+      # Workaround for
+      #   https://github.com/tensorflow/tensorflow/issues/8191#issuecomment-318981134
+      def single_cell():
+        return tf.contrib.rnn.GRUCell(size)
+      if use_lstm:
+        def single_cell():
+          return tf.contrib.rnn.BasicLSTMCell(size)
+      cell = single_cell()
+      if num_layers > 1:
+        cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
+      # End fixed bug #8191
       return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
           encoder_inputs,
           decoder_inputs,
